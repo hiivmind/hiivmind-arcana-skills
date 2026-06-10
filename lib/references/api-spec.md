@@ -97,6 +97,24 @@ GET /v1/skills
 
 ---
 
+### Get Skill
+
+```http
+GET /v1/skills/{skill_id}
+```
+
+**Response:**
+```json
+{
+  "id": "skill_01AbCdEfGhIjKlMnOpQrStUv",
+  "title": "My Skill",
+  "version": 2,
+  "created_at": "2026-01-14T10:30:00Z"
+}
+```
+
+---
+
 ### Delete Skill
 
 ```http
@@ -142,7 +160,7 @@ Once uploaded, use skills in API requests:
 
 ```json
 {
-  "model": "claude-sonnet-4-20250514",
+  "model": "claude-sonnet-4-6",
   "max_tokens": 1024,
   "container": {
     "skills": [

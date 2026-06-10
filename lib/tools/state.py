@@ -91,6 +91,39 @@ def list_skills() -> None:
         print("No skills tracked yet.")
 
 
+def sync_from_api(api_data: list) -> None:
+    """Sync state from API list output. Only tracks custom skills."""
+    state = load_state()
+    uploads = state.setdefault("uploads", {})
+
+    added = 0
+    updated = 0
+    for skill in api_data:
+        if skill.get("source") != "custom":
+            continue
+
+        name = skill["display_title"]
+        skill_id = skill["id"]
+        existing = uploads.get(name)
+
+        if existing and existing.get("skill_id") == skill_id:
+            existing["latest_version"] = skill.get("latest_version")
+            existing["updated_at"] = skill.get("updated_at")
+            updated += 1
+        else:
+            uploads[name] = {
+                "skill_id": skill_id,
+                "latest_version": skill.get("latest_version"),
+                "created_at": skill.get("created_at"),
+                "updated_at": skill.get("updated_at"),
+                "source_path": None,
+            }
+            added += 1
+
+    save_state(state)
+    print(f"Synced: {added} added, {updated} updated, {len(uploads)} total tracked")
+
+
 def delete_skill(name: str) -> None:
     """Remove a skill from tracking."""
     state = load_state()
@@ -146,6 +179,10 @@ State file: ~/.claude/hiivmind-arcana.state.yaml
     p_del = subparsers.add_parser("delete", help="Remove a skill from tracking")
     p_del.add_argument("name", help="Skill name")
 
+    # sync command
+    p_sync = subparsers.add_parser("sync", help="Sync state from API (pipe json from api.py list)")
+    p_sync.add_argument("--json", "-j", help="JSON string from api.py list (reads stdin if omitted)")
+
     args = parser.parse_args()
 
     if args.command == "get":
@@ -156,6 +193,15 @@ State file: ~/.claude/hiivmind-arcana.state.yaml
         list_skills()
     elif args.command == "delete":
         delete_skill(args.name)
+    elif args.command == "sync":
+        import json
+        if args.json:
+            raw = args.json
+        else:
+            raw = sys.stdin.read()
+        data = json.loads(raw)
+        skills = data.get("data", data) if isinstance(data, dict) else data
+        sync_from_api(skills)
 
 
 if __name__ == "__main__":
